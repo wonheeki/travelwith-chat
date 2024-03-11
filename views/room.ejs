@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+
+<body>
+  <div class="chat-container" id="chat-container">
+    <!-- 채팅방 메세지 추가 -->
+  </div>
+  <div class="input-container">
+    <input type="text" id="input-message" placeholder="메세지 작성">
+    <button id="send-message">채팅</button>
+
+  </div>
+  <script>
+    const socket = io()
+    const roomId = "<%= roomId %>"
+
+
+    //페이지가 열렸을때 사용자가 방에 입장했음을 서버에 전송
+    socket.on("connect", () => {
+      socket.emit('join', roomId, socket.id)
+
+    })
+
+    socket.on('userJoin', (userId) => {
+      const chat = document.getElementById('chat-container')
+      const message = document.createElement('div')
+      message.innerHTML = `사용자 접속: <strong>${userId}</strong>`
+      chat.appendChild(message)
+    })
+
+    socket.on("message", (data) => {
+      chatMessage(data.userId, data.message)
+    })
+
+    document.getElementById('send-message').addEventListener('click', () => {
+      const message = document.getElementById("input-message")
+      socket.emit('send-message', message.value, roomId)
+      chatMessage("Me", message.value)
+      message.value = ''
+    })
+
+    function chatMessage(userId, message) {
+      const chat = document.getElementById('chat-container')
+      const div = document.createElement('div')
+      div.innerHTML = `${userId}: ${message}`
+      chat.appendChild(div)
+    }
+  </script>
+</body>
+
+</html>
