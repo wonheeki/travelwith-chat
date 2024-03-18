@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <style>
+        .chatting-wrapper{
+            width: 40vw;
+        }
+        .chatting-header{
+            display: flex;
+            width: 100%;
+            justify-content: space-between;
+        }
+        .chat-partner-search input{
+            width:98%
+        }
+        .list-user{
+            display: flex;
+            justify-content: space-between;
+        }
+        .list-nickname{
+            margin-right:10%;
+        }
+        .list-profile{
+            margin-left: 10%;
+        }
+        .list-profile img{
+            width: 40px;
+        }
+        .user-selected{
+            background-color: gray;
+        }
+    </style>
+</head>
+<body>
+    <div class="chatting-wrapper">
+        <div class="chatting-header">
+            <span class="material-symbols-rounded">
+                close
+                </span>
+                <div>대화상대 선택</div>
+                <div onclick="goChatRoom()">확인</div>
+            </div>
+            <div></div>
+            <div class="chat-partner-search">
+                <input type="text" id="u_nickname" onkeyup="searchHandler()" placeholder="닉네임 검색">
+            </div>
+          <div class="chat-user-list">
+          </div>
+    </div>
+  <script>
+    const searchHandler=async()=>{
+        const nickname = document.getElementById("u_nickname").value;
+        if (!nickname.trim()) {
+        return; // 값이 없으면 함수 종료
+    }
+      try {
+          const response =await axios.get(`http://localhost:8000/userSearch`,{
+            params:{
+                u_nickname:nickname
+            }
+          })
+          .then(response=>{
+            const data = response.data.userData;
+            console.log(data);
+            const chatListBox = document.querySelector(".chat-user-list")
+            chatListBox.innerHTML="";
+            data.forEach(user => {
+                const html = `<div class="list-user ${user.u_nickname}" onclick="selectUserHandler('${user.u_nickname}')">
+                                <div class="list-profile"><img src="${user.u_profile}"/></div>
+                                <div class="list-nickname">${user.u_nickname}</div>
+                            </div>`;
+                chatListBox.insertAdjacentHTML('beforeend', html);
+            });
+            
+            console.log(localStorage.getItem("jwtToken"));
+            
+          })
+        
+      } catch (error) {
+        console.log(error);
+      }
+    }
+
+    let selectedUserElement = null; // 이전에 선택된 요소를 추적하기 위한 변수
+    let clickedUser = null;
+
+    const selectUserHandler = (nickname) => {
+        // 이전에 선택된 요소의 클래스 제거
+        if (selectedUserElement) {
+            selectedUserElement.classList.remove('user-selected');
+        }
+        
+        // 새로운 요소에 클래스 추가
+        const div = document.querySelector(`.${nickname}`);
+        div.classList.add('user-selected');
+        console.log(div);
+
+        // 선택된 요소를 추적하기 위해 변수에 할당
+        selectedUserElement = div;
+        clickedUser=nickname;
+        console.log(selectedUserElement);
+    }
+
+    const goChatRoom=()=>{
+        try {
+            const response = axios.post("http://localhost:8000/chatCreate");
+        } catch (error) {
+            console.log(error);
+        }
+    }
+  </script>
+</body>
+</html>

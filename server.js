@@ -1,65 +1,50 @@
 const express = require("express");
 const socketIo = require("socket.io");
 const http = require("http");
-
+const dotenv = require('dotenv');
+dotenv.config();
+const PORT = process.env.PORT;
+const db = require('./model/index');
 const app = express();
-const PORT = 8000;
+const cors = require('cors');
 
 const server = http.createServer(app);
 const io = socketIo(server);
 
-//채팅방 정보 저장변수
-const rooms = {};
+app.use(cors({
+  origin: 'http://localhost:8080', // 스프링 서버 주소
+  credentials: true, // 크로스 도메인 요청 시 쿠키를 허용
+  exposedHeaders: ['Authorization'] // 클라이언트가 접근할 수 있도록 허용할 헤더 목록
+}));
+// Node.js / Express
+const jwt = require('jsonwebtoken');
+
+// app.get('/some-endpoint', (req, res) => {
+    
+// });
+
+
 
 //미들웨어
 app.set("view engine", "ejs");
-app.use(express.urlencoded({ extends: true }));
+app.use(express.urlencoded({ extended: true }));
 
-//라우터
-app.get("/", (req, res) => {
-  res.render("index", { rooms });
-});
+const indexRouter = require('./routes/index');
+app.use('/', indexRouter);
 
-//방생성
-app.post("/create", (req, res) => {
-  const roomId = req.body.id;
-  if (!rooms[roomId]) {
-    //방이 존재하지 않는다면 생성
-    rooms[roomId] = { users: {} };
-  }
-  //방으로 리다이렉트
-  res.redirect(`/room/${roomId}`);
-});
+const chatSocket = require('./sockets/chatSocket');
+chatSocket(io); // io 객체를 넘겨주면서 chatSocket 함수 호출
 
-//방접속
-app.get("/room/:id", (req, res) => {
-  const roomId = req.params.id;
-  res.render("room", { roomId: roomId });
-});
+db.sequelize.sync({ force: false }).then(() => {
+  app.listen(PORT, () => {
+      console.log(`http://localhost:${PORT}`);
+  })
+}).catch((err) => {
+  console.log(err);
+})
 
-//소켓
-io.on("connection", (socket) => {
-  //사용자가 방에 입장시
-  socket.on("join", (roomId, userId) => {
-    console.log(userId);
-    //소켓io의 방에 입장
-    socket.join(roomId);
-    //방 정보에 사용자 정보 추가
-    rooms[roomId].users[socket.id] = userId;
-    //방에 있는 사용자에게 다른 사용자 연결 알림
-    socket.to(roomId).emit("userJoin", userId);
-  });
-
-  //메세지 전송
-  socket.on("send-message", (message, roomId) => {
-    console.log(message);
-    socket
-      .to(roomId)
-      .emit("message", { message, userId: rooms[roomId].users[socket.id] });
-  });
-});
 
 //서버오픈
-server.listen(PORT, () => {
-  console.log(`http://localhost:${PORT}`);
-});
+// server.listen(PORT, () => {
+//   console.log(`http://localhost:${PORT}`);
+// });
